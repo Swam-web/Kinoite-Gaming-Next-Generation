@@ -61,6 +61,10 @@ sudo systemctl reboot
 - `tsc=reliable clocksource=tsc` : retirer ces kargs en cas de dérive horaire (VM exotiques).
 - `clearcpuid=514` : masque la feature CPUID 514 — **nécessaire au lancement de certains jeux**
   (Proton/Wine). Ne retirer qu'en connaissance de cause.
+- **Dépannage NVIDIA** : en cas d'écran noir ou de session qui ne démarre pas avec le driver
+  propriétaire, le karg `nvidia.NVreg_EnableGpuFirmware=0` (GSP off) est le premier levier
+  éprouvé sur RTX 40 (validé sur i9-14900K, driver 615). À ajouter **au cas par cas** —
+  l'image ne l'impose pas (GSP actif fonctionne bien sur la plupart des configs).
 - `mitigations=off` est volontairement **non activé** (voir commentaire dans `recipe.yml`).
 
 ## Build
