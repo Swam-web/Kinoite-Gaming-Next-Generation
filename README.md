@@ -104,7 +104,6 @@ cosign verify --key cosign.pub ghcr.io/swam-web/swam-os-kinoite-gaming:latest
 ```
 
 ## Crédits
-test
 
 [Fedora Kinoite](https://fedoraproject.org/kinoite/) / [Universal Blue](https://universal-blue.org/),
 [BlueBuild](https://blue-build.org/), [CachyOS](https://cachyos.org/), [RPMFusion](https://rpmfusion.org/),
