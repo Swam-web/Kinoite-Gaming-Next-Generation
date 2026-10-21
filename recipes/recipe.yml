@@ -125,6 +125,9 @@ modules:
       # clearcpuid=514 : masque la feature CPUID 514 — sans ce masque,
       # beaucoup de jeux (Proton/Wine) refusent de se lancer.
       - clearcpuid=514
+      # usbcore est BUILTIN (option modprobe.d ignorée) : pas d'autosuspend
+      # USB — wake latency des dongles manettes/wheels sur desktop alimenté.
+      - usbcore.autosuspend=-1
       - tsc=reliable
       - clocksource=tsc
       - nvme_core.default_ps_max_latency_us=0
