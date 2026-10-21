@@ -1,0 +1,14 @@
+# Tuning gaming KWin — s'applique à tous les utilisateurs (/etc/xdg).
+#
+# VRR (Adaptive Sync) : déjà activé par défaut en Wayland Plasma 6
+# (VRR « Automatique » quand l'écran le supporte).
+#
+# Tearing : autorise la présentation immédiate en plein écran — les jeux
+# non-VSynced ne sont plus tamponnés par le compositeur (latence minimale).
+# Désactiver si artefacts visuels en fenêtré.
+#
+# Politique de latence : réglable par utilisateur dans
+# Paramètres -> Affichage -> Configuration du compositeur
+# (« Prévention de la latence » -> Extrêmement basse) si souhaité.
+[Compositing]
+AllowTearing=true

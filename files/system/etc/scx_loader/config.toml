@@ -1,0 +1,10 @@
+# scx_loader — ordonnanceurs sched_ext (le kernel CachyOS embarque sched_ext).
+#
+# scx_lavd = « Latency-Aware Virtual Deadline », conçu pour le jeu.
+# Le service sait aussi basculer tout seul vers scx_lavd quand la charge CPU
+# dépasse 90 % pendant 5 s, puis revenir une fois retombée.
+#
+# Activé par scx_loader.service (activé dans recipes/base/packages.yml).
+# Outils de contrôle fournis par scx-tools : scxctl, scxtui.
+default_sched = "scx_lavd"
+default_mode  = "Gaming"

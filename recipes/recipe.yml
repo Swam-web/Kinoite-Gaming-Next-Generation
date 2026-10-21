@@ -1,0 +1,147 @@
+---
+# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
+name: kinoite-gaming-next-generation
+description: Universal Kinoite 45 gaming image (next-gen) — CachyOS kernel, NVIDIA open + AMD ROCm (auto-detected at boot)
+base-image: quay.io/fedora-ostree-desktops/kinoite
+image-version: 45
+platforms:
+  - linux/amd64
+modules:
+  # Copie de system_files -> / (équivalent du cp -avf du build.sh d'origine)
+  - type: files
+    files:
+      - source: system
+        destination: /
+
+  # Kernel CachyOS clang-LTO remplaçant le kernel Fedora
+  # (shims kernel-install, rpm --erase --nodeps, versionlock)
+  - type: script
+    scripts:
+      - kernel-cachyos.sh
+
+  # NVIDIA (RPMFusion), kmods rpmbuild clang contre le kernel CachyOS
+  ## Ne se lie qu'au matériel NVIDIA : inerte sur machine AMD
+  - type: script
+    scripts:
+      - nvidia.sh
+
+  # AMD ROCm : dépôt officiel + pile userland
+  ## amdgpu est in-tree (kernel CachyOS) : inerte sur machine NVIDIA
+  - type: script
+    scripts:
+      - rocm.sh
+
+  # MediaTek MT7927 WiFi + MT6639 Bluetooth, précompilés
+  - type: script
+    scripts:
+      - mt7927.sh
+
+  # Périphériques gaming — xpadneo (BT Xbox), xone (dongle USB Xbox)
+  ## FAIL-SOFT : add-on matériel, sources GitHub ; le build public continue
+  - type: script
+    scripts:
+      - controllers.sh
+
+  # Périphériques gaming — OpenRazer (claviers/souris Razer)
+  ## FAIL-SOFT ; kmods clang contre le kernel CachyOS + daemon Python
+  - type: script
+    scripts:
+      - razer.sh
+
+  # Périphériques gaming — OpenTabletDriver (tablettes graphiques)
+  ## FAIL-SOFT ; userland pur (RPM officiel du projet + dotnet Fedora)
+  - type: script
+    scripts:
+      - tablet.sh
+
+  # Codecs système universels : RPMFusion + VA-API/Vulkan AMD (freeworld)
+  # + pont NVDEC -> VA-API NVIDIA (libva-nvidia-driver), 32 bits inclus
+  - type: script
+    scripts:
+      - codecs.sh
+
+  # Wine + winetricks + protontricks
+  - type: script
+    scripts:
+      - wine.sh
+
+  # Optimisations réactivité/légèreté (les 4 points) :
+  #   Baloo masqué, irqbalance et Discover retirés ;
+  #   KWin gaming (tearing) et compression btrfs via files/system
+  - type: script
+    scripts:
+      - tuning.sh
+
+  # Addons CachyOS, paquets système, services (cups/avahi en socket-activation)
+  - from-file: base/packages.yml
+
+  # Gaming (flatpaks)
+  - from-file: base/gaming.yml
+
+  # Nettoyage : toolchain de build, repos et COPRs désactivés
+  - type: script
+    scripts:
+      - cleanup.sh
+
+  # Arguments noyau — les deux piles cohabitent, le matériel décide :
+  #   rd.driver.blacklist=nouveau + modprobe.blacklist=nouveau :
+  #                                          empêche nouveau de prendre le GPU
+  #                                          avant nvidia (écran noir au boot).
+  #                                          Posés ici car le scriptlet
+  #                                          akmod-nvidia est skippé
+  #                                          (--noscripts) dans nvidia.sh.
+  #   nvidia-drm.modeset=1                  : KMS obligatoire pour Wayland/NVIDIA
+  #   nvidia-drm.fbdev=1                    : framebuffer nvidia-drm natif
+  #                                          (console propre au boot, évite
+  #                                          des soucis Wayland ; driver 545+)
+  #   nvidia.NVreg_PreserveVideoMemoryAllocations : corrige la VRAM non libérée
+  #                                          après une veille (stutter au réveil)
+  #   transparent_hugepage=always           : THP agressif = CachyOS natif
+  #                                          (tcmalloc : Chromium, Proton) ;
+  #                                          défaut Fedora = madvise, et
+  #                                          cachyos-settings ne pose que le
+  #                                          defrag (tmpfiles), pas le mode.
+  #   amdgpu.ppfeaturemask                  : débloque OC/undervolt (LACT, CoreCtrl)
+  #   amdgpu.gpu_recovery                   : récupère d'un crash GPU au lieu du gel
+  #   nowatchdog                            : supprime la surveillance NMI
+  #   split_lock_detect=off                 : évite les ralentissements de certains
+  #                                          jeux/émulateurs (split lock)
+  #   tsc=reliable clocksource=tsc          : horloge basse latence ; retirer si
+  #                                          dérive horaire constatée (VM exotiques)
+  ## Option sécurité/perf (non activée, à décommenter en connaissance de cause) :
+  ##   mitigations=off
+  - type: kargs
+    kargs:
+      - rd.driver.blacklist=nouveau
+      - modprobe.blacklist=nouveau
+      - nvidia-drm.modeset=1
+      - nvidia-drm.fbdev=1
+      - nvidia.NVreg_PreserveVideoMemoryAllocations=1
+      - transparent_hugepage=always
+      - amdgpu.ppfeaturemask=0xffffffff
+      - amdgpu.gpu_recovery=1
+      - nowatchdog
+      - split_lock_detect=off
+      # clearcpuid=514 : masque la feature CPUID 514 — sans ce masque,
+      # beaucoup de jeux (Proton/Wine) refusent de se lancer.
+      - clearcpuid=514
+      - tsc=reliable
+      - clocksource=tsc
+      - nvme_core.default_ps_max_latency_us=0
+
+  # Initramfs : régénéré pour le kernel CachyOS installé
+  # (équivaut au « dracut --kver … --add ostree --add fido2 » du build.sh)
+  - type: initramfs
+
+  # Politiques de signature cosign (rpm-ostree + bootc)
+  ## SIGNING_SECRET = contenu de cosign.key (-----BEGIN PRIVATE KEY-----),
+  ## PAS cosign.pub !
+  - type: signing
+
+# Caveats :
+# - Secure Boot : le kernel CachyOS et les modules ne sont pas signés
+#   avec une clé Microsoft-trustée. Désactiver Secure Boot ou enroll MOK.
+# - Le kernel CachyOS est clang/LTO : les kmods tiers doivent être
+#   compilés pour cette ABI exacte (fait dans nvidia.sh).
+# - Sur machine AMD, force_drivers=nvidia dans l'initramfs émet un
+#   avertissement bénin (nvidia.ko ne trouve pas de matériel) — sans effet.

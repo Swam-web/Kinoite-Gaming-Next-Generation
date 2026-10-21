@@ -1,0 +1,121 @@
+---
+# yaml-language-server: $schema=https://schema.blue-build.org/module-list-v1.json
+# Fichier inclus via `from-file:` -> doit contenir une clé `modules:`
+# (schéma module-list-v1.json = objet { modules: [...] }, PAS une liste nue).
+modules:
+  # Addons CachyOS : cachyos-settings fournit son propre zram-generator-defaults,
+  # en conflit avec celui de la base — --allowerasing échange pour la version
+  # CachyOS (d'où le snippet dnf5 plutôt que le module dnf).
+  # Kinoite ne shippe pas scx-scheds/scx-tools : installés depuis le COPR.
+  - type: script
+    snippets:
+      - dnf5 -y install --allowerasing cachyos-settings scx-scheds scx-tools scx-manager ananicy-cpp cachyos-ananicy-rules
+
+  # Impression générique (cups : IPP Everywhere, la plupart des imprimantes
+  # marchent sans driver constructeur), découverte et firewall.
+  ## hplip/hplip-gui volontairement ABSENTS : drivers HP spécifiques —
+  ## inutile d'alourdir une image publique pour un constructeur donné.
+  ## Qui en a besoin : `rpm-ostree install hplip hplip-gui` (ou distrobox).
+  - type: dnf
+    install:
+      packages:
+        - firewalld
+        - firewall-config
+        - firewall-applet
+        - cups
+        - avahi
+        - tmux
+        - htop
+        - distrobox
+        - fastfetch
+        - zsh
+        - libcec
+
+  # Gestion thermique Intel (thermald) : évite le throttling CPU.
+  ## Inerte sur machine AMD (aucun senseur Intel) — sans effet.
+  - type: dnf
+    install:
+      packages:
+        - thermald
+
+  # Support AppImage (Hermes Desktop et autres) :
+  ## fuse-libs (libfuse2.so.2) N'EST PAS dans la base Kinoite — sans lui,
+  ## une AppImage ne se monte pas. fuse/fuse3 = les démons de montage
+  ## (fusermount / fusermount3 selon la version de l'AppImage).
+  ## python3 = 3.14 sur Fedora 44 (épinglé explicitement pour les outils
+  ## utilisateur type Hermes ; l'app embarque de toute façon le sien).
+  ## gcc-c++ = chaîne de compilation des modules natifs npm (node-pty,
+  ## get-windows…) : évite le layering rpm-ostree à chaque install d'outil
+  ## en nécessitant un build node-gyp.
+  - type: dnf
+    install:
+      packages:
+        - fuse
+        - fuse3
+        - fuse-libs
+        - python3
+        - gcc-c++
+
+  # Linker : /usr/bin/ld est posé par le scriptlet alternatives de binutils,
+  # qui ne s'applique pas dans les builds ostree — ld.bfd existe pourtant.
+  ## Symlink dans /usr/bin (commité dans l'image ostree ; /usr/local pointe
+  ## vers /var/usrlocal, absent du build et non commité) : rétablit `ld`
+  ## pour node-gyp et toute compilation native. Idempotent : ignoré si
+  ## binutils finit par livrer /usr/bin/ld lui-même.
+  - type: script
+    snippets:
+      - test -e /usr/bin/ld || ln -s /usr/bin/ld.bfd /usr/bin/ld
+
+  # Gaming système (RPM) — paquets vérifiés présents dans Fedora 44.
+  # Les variantes .i686 sont celles que réclament les jeux 32 bits de Steam.
+  - type: dnf
+    install:
+      packages:
+        - gamescope        # compositeur/upscaler (FSR, résolutions custom, HDR)
+        - gamemode         # optimisation CPU/GPU à la demande
+        - gamemode.i686
+        - mangohud         # overlay FPS/temps de frame
+        - mangohud.i686
+        - vkBasalt         # post-traitement (CAS, équivalent ReShade)
+        - vkBasalt.i686
+        - goverlay         # interface de configuration MangoHud
+        - vulkan-tools     # vulkaninfo (diagnostic)
+        - steam-devices    # règles udev des manettes (Steam, DualSense, Xbox…)
+
+  # Snapshots /var/home — snapper (timeline) + Btrfs Assistant (GUI) :
+  ## Rôle = récupération fine des DONNÉES (fausse manip, config écrasée).
+  ## Pas un backup : snapshots sur le même disque. L'OS, lui, est déjà
+  ## versionné par ostree (rollback natif) — snapper ne le gère pas.
+  ## La config snapper est créée au PREMIER BOOT (/var/home btrfs absent du
+  ## buildroot) par swam-snapper-setup.service, et les timers sont actifs
+  ## dès l'installation (no-op tant qu'aucune config n'existe).
+  - type: dnf
+    install:
+      packages:
+        - snapper
+        - btrfs-assistant    # GUI : navigation/restore des snapshots + scrub
+        - btrfsmaintenance   # maintenance btrfs pilotable depuis Btrfs Assistant
+
+  # Services — impression et découverte réseau ACTIFS :
+  #   cups + avahi démarrés au boot : la socket-activation seule ne suffit
+  #   pas à la découverte mDNS des imprimantes réseau (dépannage 2026-10-21).
+  #   Les .socket restent actifs (layout Fedora standard).
+  #   firewalld reste actif dès le boot.
+  #   swam-btrfs-compress : compression zstd du rootfs btrfs (no-op sinon).
+  #   NB : irqbalance n'existe PAS dans kinoite — le désactiver ferait
+  #   échouer le module (unité inexistante), d'où son absence de la liste.
+  - type: systemd
+    system:
+      enabled:
+        - cups.service
+        - cups.socket
+        - scx_loader.service
+        - avahi-daemon.service
+        - avahi-daemon.socket
+        - firewalld.service
+        - podman.socket
+        - swam-btrfs-compress.service
+        - swam-snapper-setup.service   # crée la config snapper au 1er boot
+        - snapper-timeline.timer       # snapshots horaires /var/home
+        - snapper-cleanup.timer        # purge des vieux snapshots
+        - thermald.service    # thermique Intel (inerte sur AMD)

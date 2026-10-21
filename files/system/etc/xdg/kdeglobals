@@ -1,0 +1,5 @@
+[KDE]
+# Vitesse des animations Plasma/KWin : 0.5 = deux fois plus rapides
+# (interface plus nerveuse). Réglable par utilisateur dans
+# Paramètres -> Apparence et style -> « Vitesse des animations ».
+AnimationDurationFactor=0.5

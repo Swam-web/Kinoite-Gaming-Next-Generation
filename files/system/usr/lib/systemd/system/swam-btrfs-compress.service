@@ -1,0 +1,15 @@
+[Unit]
+Description=Active la compression zstd sur le rootfs btrfs (swam-os)
+# Ne s'applique qu'aux propriétés du sous-volume racine : les nouveaux
+# fichiers sont compressés transparentment (moins d'I/O, plus d'espace).
+# No-op (échec ignoré) si le rootfs n'est pas btrfs.
+ConditionPathExists=/sys/fs/btrfs
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=-/usr/bin/btrfs property set / compress zstd
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

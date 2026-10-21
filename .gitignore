@@ -1,0 +1,12 @@
+cosign.key
+MOK.priv
+output
+_build_*
+/.bluebuild-scripts_*
+
+# --- Images disque generees en local (volumineuses) ---
+*.iso
+*.iso-CHECKSUM
+*.qcow2
+*.raw
+*.vmdk
