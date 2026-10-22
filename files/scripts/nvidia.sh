@@ -26,6 +26,14 @@ dnf5 -y --refresh install \
     "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA}.noarch.rpm" \
     "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA}.noarch.rpm"
 
+### 1bis. Import explicite des clés RPMFusion dans le rpmdb : dnf5 importe
+###    normalement la clé en installant le paquet release, mais le `rpm -i`
+###    direct de l'akmod (étape 3) vérifie la signature LUI-MÊME et échoue
+###    en NOKEY si l'import dnf5 n'a pas eu lieu (constaté F45, clé
+###    6a2af96194843c65). On importe toutes les clés livrées par les paquets
+###    release — idempotent, et l'échec est bloquant (loud early).
+rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-*-fedora-*
+
 ### 2. akmods (requis par le contrôle de dépendances d'akmod-nvidia)
 dnf5 -y install akmods
 
