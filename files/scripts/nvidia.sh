@@ -97,7 +97,18 @@ export CC=clang CXX=clang++ LD=ld.lld LLVM=1 LLVM_IAS=1
 rpmbuild --rebuild --define "_topdir ${NVIDIA_BUILD}" --define "kernels ${KERNEL_VERSION}" /usr/src/akmods/nvidia-kmod.latest
 unset CC CXX LD LLVM LLVM_IAS
 
-find "${NVIDIA_BUILD}/RPMS" -type f -name '*.rpm' ! -name '*debuginfo*' -exec rpm -i {} \;
+shopt -s nullglob
+for kmod_rpm in "${NVIDIA_BUILD}"/RPMS/*/*.rpm; do
+    case "${kmod_rpm}" in *debuginfo*) continue ;; esac
+    # --nosignature : le kmod est construit ICI, sans clé GPG — rpm de F45
+    # refuse les paquets sans signature (changement de politique vs F44).
+    rpm -i --nosignature "${kmod_rpm}"
+done
+shopt -u nullglob
+rpm -qa | grep -qE '^kmod-nvidia' || {
+    echo "ERREUR : kmod-nvidia construit mais non installé"
+    exit 1
+}
 rm -rf "${NVIDIA_BUILD}"
 depmod -a "${KERNEL_VERSION}"
 
