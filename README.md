@@ -98,6 +98,11 @@ sudo podman run --rm --privileged --pull=newer \
 Or via GitHub Actions: `Actions → Build disk images → Run workflow`
 (set `release-tag`, e.g. `v45.0`, to publish the ISO to Releases — public download).
 
+> **ISO > 2 GiB**: GitHub caps release assets at 2 GiB — the workflow splits the ISO
+> into `.part-XX` files (1900 MiB each) with a `SHA256SUMS`. Reassemble with:
+> `cat kinoite-gaming-next-generation-amd64.iso.part-* > kinoite-gaming-next-generation-amd64.iso`
+> then check `sha256sum -c kinoite-gaming-next-generation-amd64.iso.sha256`.
+
 ## Signing
 
 Images are signed with **cosign** (public key in `cosign.pub`, GitHub secret `SIGNING_SECRET`).
