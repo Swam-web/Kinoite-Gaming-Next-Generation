@@ -28,6 +28,7 @@ modules:
         - htop
         - distrobox
         - fastfetch
+        - zenity
         - zsh
         - libcec
 
