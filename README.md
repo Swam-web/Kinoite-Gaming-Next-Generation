@@ -1,3 +1,5 @@
+![Kinoite Gaming — Next Generation](repo_assets/banner.png)
+
 # Kinoite-Gaming-Next-Generation
 
 Image **bootc** (Fedora Atomic) **universelle** basée sur **Kinoite 45**
