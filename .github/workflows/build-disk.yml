@@ -116,9 +116,16 @@ jobs:
             --title "${{ inputs.release-tag }}" \
             --notes "ISO d'installation de ${IMAGE_NAME} — bootc, voir README pour bootc switch." \
             --latest 2>/dev/null || true
-          gh release upload "${{ inputs.release-tag }}" \
-            ${{ steps.build.outputs.output-directory }}/*.iso --clobber
-          echo "ISO publiée sur la release ${{ inputs.release-tag }}"
+          ISO=$(find "${{ steps.build.outputs.output-directory }}" -type f -name '*.iso' | head -1)
+          if [ -z "$ISO" ]; then
+            echo "ERREUR: aucune *.iso trouvée dans l'output:"
+            find "${{ steps.build.outputs.output-directory }}" -type f | head -20
+            exit 1
+          fi
+          TGT="$(mktemp -d)/${IMAGE_NAME}-amd64.iso"
+          cp "$ISO" "$TGT"
+          gh release upload "${{ inputs.release-tag }}" "$TGT" --clobber
+          echo "ISO publiée: ${IMAGE_NAME}-amd64.iso -> release ${{ inputs.release-tag }}"
 
       - name: Upload to S3
         if: inputs.upload-to-s3 == true && github.event_name != 'pull_request'
