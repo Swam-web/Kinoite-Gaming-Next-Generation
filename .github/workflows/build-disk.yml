@@ -9,6 +9,11 @@ on:
         required: false
         default: false
         type: boolean
+      release-tag:
+        description: "Tag de release pour publier l'ISO (ex: v45.0) — vide = pas de release"
+        required: false
+        default: ""
+        type: string
       platform:
         required: true
         type: choice
@@ -45,7 +50,7 @@ jobs:
       matrix:
         disk-type: ["qcow2", "anaconda-iso"]
     permissions:
-      contents: read
+      contents: write
       packages: read
       id-token: write
 
@@ -101,7 +106,20 @@ jobs:
           retention-days: 0
           compression-level: 0
           overwrite: true
-      
+
+      - name: Publish ISO to GitHub Release
+        if: inputs.release-tag != '' && matrix.disk-type == 'anaconda-iso' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ inputs.release-tag }}" \
+            --title "${{ inputs.release-tag }}" \
+            --notes "ISO d'installation de ${IMAGE_NAME} — bootc, voir README pour bootc switch." \
+            --latest 2>/dev/null || true
+          gh release upload "${{ inputs.release-tag }}" \
+            ${{ steps.build.outputs.output-directory }}/*.iso --clobber
+          echo "ISO publiée sur la release ${{ inputs.release-tag }}"
+
       - name: Upload to S3
         if: inputs.upload-to-s3 == true && github.event_name != 'pull_request'
         shell: bash
