@@ -83,6 +83,12 @@ modules:
     scripts:
       - cleanup.sh
 
+  # Repos distro dnf5 -> /etc/yum.repos.d (dnf5 les a déplacés sous /usr ;
+  # le depsolve anaconda de bootc-image-builder ne lisait plus rien) :
+  - type: script
+    scripts:
+      - dnf-repos-fix.sh
+
   # Arguments noyau — les deux piles cohabitent, le matériel décide :
   #   rd.driver.blacklist=nouveau + modprobe.blacklist=nouveau :
   #                                          empêche nouveau de prendre le GPU
