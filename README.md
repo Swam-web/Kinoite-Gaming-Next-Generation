@@ -81,8 +81,23 @@ bluebuild validate recipes/recipe.yml
 
 ## Disk images (ISO / qcow2)
 
-Via **bootc-image-builder** (read the caveat in the `swam-os-kinoite-nvidia` repo about
-`bluebuild generate-iso` limitations):
+### Download the ISO (fresh install)
+
+The **v45.0** release ships the install ISO as split parts (GitHub caps release
+assets at 2 GiB; the ISO weighs 8.34 GiB):
+[github.com/Swam-web/Kinoite-Gaming-Next-Generation/releases](https://github.com/Swam-web/Kinoite-Gaming-Next-Generation/releases)
+
+Download all `kinoite-gaming-next-generation-amd64.iso.part-XX` files + `SHA256SUMS`, then:
+
+```bash
+cat kinoite-gaming-next-generation-amd64.iso.part-* > kinoite-gaming-next-generation-amd64.iso
+sha256sum -c kinoite-gaming-next-generation-amd64.iso.sha256
+```
+
+Or build it yourself via GitHub Actions: `Actions → Build disk images → Run workflow`
+(set `release-tag`, e.g. `v45.0` — the workflow splits the ISO automatically).
+
+Via **bootc-image-builder** locally:
 
 ```bash
 sudo podman run --rm --privileged --pull=newer \
@@ -94,14 +109,6 @@ sudo podman run --rm --privileged --pull=newer \
   --local --chown $(id -u):$(id -g) \
   ghcr.io/swam-web/kinoite-gaming-next-generation:latest
 ```
-
-Or via GitHub Actions: `Actions → Build disk images → Run workflow`
-(set `release-tag`, e.g. `v45.0`, to publish the ISO to Releases — public download).
-
-> **ISO > 2 GiB**: GitHub caps release assets at 2 GiB — the workflow splits the ISO
-> into `.part-XX` files (1900 MiB each) with a `SHA256SUMS`. Reassemble with:
-> `cat kinoite-gaming-next-generation-amd64.iso.part-* > kinoite-gaming-next-generation-amd64.iso`
-> then check `sha256sum -c kinoite-gaming-next-generation-amd64.iso.sha256`.
 
 ## Signing
 
