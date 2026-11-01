@@ -51,8 +51,17 @@ dnf5 -y install gstreamer1-plugin-openh264 libdvdcss
 
 ### 6. Accélération matérielle — AMD/Intel (mesa « freeworld »)
 ###    Inerte sur NVIDIA : le driver propriétaire fournit son propre ICD Vulkan.
-dnf5 -y install mesa-va-drivers-freeworld
-dnf5 -y swap mesa-vulkan-drivers mesa-vulkan-drivers-freeworld
+###    Durci 11/2026 : RPMFusion fige l'EVR exact (mesa-va-drivers-freeworld
+###    exige mesa-filesystem = même version) ; un décalage Fedora/RPMFusion
+###    (26.2.6 vs 26.2.5, 10/2026) rendait la transaction insoluble et bloquait
+###    toute la build pour des paquets que cette image NVIDIA n'utilise pas.
+###    -> best effort : avertissement au log, le build continue.
+try_freeworld() {
+    dnf5 -y "$@" || echo "AVERTISSEMENT : freeworld ignoré (décalage RPMFusion probable) -> $*"
+}
+try_freeworld install mesa-va-drivers-freeworld
+dnf5 -y swap mesa-vulkan-drivers mesa-vulkan-drivers-freeworld \
+    || echo "AVERTISSEMENT : swap mesa-vulkan-drivers-freeworld ignoré (décalage RPMFusion probable)"
 
 ### 7. Accélération matérielle — NVIDIA
 ###    Le pilote propriétaire ne fait pas de VA-API nativement : libva-nvidia-driver
@@ -62,18 +71,20 @@ dnf5 -y install libva-nvidia-driver
 ### 8. Pilotes vidéo 32 bits — requis par Steam pour les jeux 32 bits.
 ###    Le Flatpak Steam apporte son propre runtime 32 bits, mais PAS les pilotes
 ###    de l'hôte : sans ça, ni Vulkan ni GL ni VA-API en 32 bits.
+###    (freeworld i686 : best effort, cf. étape 6 — inerte sur NVIDIA.)
 dnf5 -y install mesa-dri-drivers.i686 mesa-vulkan-drivers.i686 vulkan-loader.i686 libva.i686
-dnf5 -y install mesa-va-drivers-freeworld.i686
+try_freeworld install mesa-va-drivers-freeworld.i686
 dnf5 -y install libva-nvidia-driver.i686
-dnf5 -y swap mesa-vulkan-drivers.i686 mesa-vulkan-drivers-freeworld.i686
+dnf5 -y swap mesa-vulkan-drivers.i686 mesa-vulkan-drivers-freeworld.i686 \
+    || echo "AVERTISSEMENT : swap mesa-vulkan-drivers-freeworld.i686 ignoré (décalage RPMFusion probable)"
 
 ### 9. Contrôle : le build échoue plutôt que de livrer une image sans codecs.
-###    Les swaps remplacent les paquets d'origine : on contrôle les variantes
-###    effectivement installées, pas les originales.
+###    Strict uniquement sur les ESSENTIELS (lecture, DVD, openh264, pont
+###    NVIDIA, loaders 32 bits). Les variantes mesa « freeworld » restent
+###    volontairement tolérantes : inertes sur NVIDIA, fragiles par conception
+###    (EVR figé côté RPMFusion) — leur absence ne dégrade rien sur ce GPU.
 for p in ffmpeg libdvdcss gstreamer1-plugin-openh264 \
-         mesa-va-drivers-freeworld mesa-va-drivers-freeworld.i686 \
-         mesa-vulkan-drivers-freeworld mesa-vulkan-drivers-freeworld.i686 \
-         mesa-dri-drivers.i686 libva.i686 \
+         mesa-dri-drivers.i686 vulkan-loader.i686 libva.i686 \
          libva-nvidia-driver libva-nvidia-driver.i686; do
     rpm -q "$p" >/dev/null 2>&1 || { echo "ERREUR : paquet manquant -> $p"; exit 1; }
 done
