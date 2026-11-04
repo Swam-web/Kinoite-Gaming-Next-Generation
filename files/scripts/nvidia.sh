@@ -32,7 +32,16 @@ dnf5 -y --refresh install \
 ###    en NOKEY si l'import dnf5 n'a pas eu lieu (constaté F45, clé
 ###    6a2af96194843c65). On importe toutes les clés livrées par les paquets
 ###    release — idempotent, et l'échec est bloquant (loud early).
-rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-*-fedora-*
+### Import des clés GPG RPMFusion — version robuste.
+### Le paquet -release 45-2 (11/2026) a modifié le nommage des clés ; le glob
+### sans correspondance passait le LITTÉRAL à rpm -> "import read failed(2)"
+### -> build mort (CI du 04/11). nullglob + boucle : importe ce qui existe,
+### no-op sinon, ne casse jamais la transaction.
+shopt -s nullglob
+for key in /etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-*; do
+    rpm --import "$key"
+done
+shopt -u nullglob
 
 ### 2. akmods (requis par le contrôle de dépendances d'akmod-nvidia)
 dnf5 -y install akmods
