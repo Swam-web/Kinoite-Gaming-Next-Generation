@@ -83,19 +83,11 @@ modules:
         - vulkan-tools     # vulkaninfo (diagnostic)
         - steam-devices    # règles udev des manettes (Steam, DualSense, Xbox…)
 
-  # Snapshots /var/home — snapper (timeline) + Btrfs Assistant (GUI) :
-  ## Rôle = récupération fine des DONNÉES (fausse manip, config écrasée).
-  ## Pas un backup : snapshots sur le même disque. L'OS, lui, est déjà
-  ## versionné par ostree (rollback natif) — snapper ne le gère pas.
-  ## La config snapper est créée au PREMIER BOOT (/var/home btrfs absent du
-  ## buildroot) par swam-snapper-setup.service, et les timers sont actifs
-  ## dès l'installation (no-op tant qu'aucune config n'existe).
+  # Utilitaires disque : GNOME Disks (montage ISO, SMART, benchmarks)
   - type: dnf
     install:
       packages:
-        - snapper
-        - btrfs-assistant    # GUI : navigation/restore des snapshots + scrub
-        - btrfsmaintenance   # maintenance btrfs pilotable depuis Btrfs Assistant
+        - gnome-disk-utility
 
   # Services — impression et découverte réseau ACTIFS :
   #   cups + avahi démarrés au boot : la socket-activation seule ne suffit
@@ -116,7 +108,4 @@ modules:
         - firewalld.service
         - podman.socket
         - swam-btrfs-compress.service
-        - swam-snapper-setup.service   # crée la config snapper au 1er boot
-        - snapper-timeline.timer       # snapshots horaires /var/home
-        - snapper-cleanup.timer        # purge des vieux snapshots
         - thermald.service    # thermique Intel (inerte sur AMD)
