@@ -53,7 +53,7 @@ dnf5 -y install akmods
 ###    du userland ci-dessous ne le retirera donc pas avec son %post cassé.
 DRIVER_VERSION="$(dnf5 repoquery --qf '%{VERSION}-%{RELEASE}\n' akmod-nvidia | sort -V | tail -n1)"
 dnf5 -y download --destdir /tmp/nvidia-rpms "akmod-nvidia-${DRIVER_VERSION}"
-rpm -i --noscripts --nodeps /tmp/nvidia-rpms/akmod-nvidia-*.rpm
+rpm -i --noscripts --nodeps --nodigest --nosignature /tmp/nvidia-rpms/akmod-nvidia-*.rpm
 rm -rf /tmp/nvidia-rpms
 
 ### 4. La base verrouille (versionlock) les paquets mesa, ce qui gêne
