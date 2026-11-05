@@ -38,7 +38,7 @@ dnf5 -y --refresh install \
 ### -> build mort (CI du 04/11). nullglob + boucle : importe ce qui existe,
 ### no-op sinon, ne casse jamais la transaction.
 shopt -s nullglob
-for key in /etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-*; do
+for key in /etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-* /usr/share/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-*; do
     rpm --import "$key"
 done
 shopt -u nullglob
