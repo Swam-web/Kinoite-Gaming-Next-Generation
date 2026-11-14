@@ -7,8 +7,13 @@ modules:
   # en conflit avec celui de la base — --allowerasing échange pour la version
   # CachyOS (d'où le snippet dnf5 plutôt que le module dnf).
   # Kinoite ne shippe pas scx-scheds/scx-tools : installés depuis le COPR.
+  ## 1.4.3-2 (11/2026) : cachyos-settings livre désormais aussi ses configs
+  ## oomd (10-oomd-per-slice-defaults.conf) en conflit de FICHIERS avec
+  ## systemd-oomd-defaults (systemd 262.1) — on retire ce dernier d'abord
+  ## (cachyos-settings prend le relais de ces mêmes réglages).
   - type: script
     snippets:
+      - dnf5 -y remove systemd-oomd-defaults
       - dnf5 -y install --allowerasing cachyos-settings scx-scheds scx-tools scx-manager ananicy-cpp cachyos-ananicy-rules
 
   # Impression générique (cups : IPP Everywhere, la plupart des imprimantes
